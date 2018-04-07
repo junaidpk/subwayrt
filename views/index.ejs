@@ -7,11 +7,47 @@
 
   <style>
     body { text-align: center; }
+    .rapid { color: green; }
+    .frequent { color: orange; }
+    .degraded { color: red; }
   </style>
 </head>
 
 <body>
   <div class="container">
     <h1>subwayrt</h1>
+
+    <div class="row">
+      <% for (var lineGroup in lineDisplayGroups) { %>
+        <div class="col-md-6">
+          <% for (var lineGroup2 of lineDisplayGroups[lineGroup]) { %>
+            <div>
+              <% for(var lineCode of lineGroup2) { %>
+                <% var desc = getStatusDescription(lines[lineCode]['NORTH']); %>
+                <p>
+                  <%= lineCode %>: <span class="<%= desc %>"><%= desc %></span>
+                  <small><%= Object.keys(lines[lineCode]).map((d) => { return `${d}: ${lines[lineCode][d]}`; }) %></small>
+                </p>
+              <% } %>
+            </div>
+            <hr>
+          <% } %>
+        </div>
+      <% } %>
+
+<!--
+        <div>
+          <% for(var lineCode of ['L']) { %>
+            <% var desc = getStatusDescription(lines[lineCode]['NORTH']); %>
+            <p>
+              <%= lineCode %>: <span class="<%= desc %>"><%= desc %></span>
+              <small><%= Object.keys(lines[lineCode]).map((d) => { return `${d}: ${lines[lineCode][d]}`; }) %></small>
+            </p>
+          <% } %>
+        </div>
+
+        <hr>
+      -->
+    </div>
   </div>
 </body>
