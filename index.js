@@ -10,61 +10,6 @@ app.set('view engine', 'ejs');
 var publicDb = {};
 var feedMessage, directionMap;
 
-const lineCategories = [
-  {
-    name: "Degraded",
-    desc: "Every 13+ mins"
-  },
-  {
-    name: "Frequent",
-    desc: "Every 6-12 mins"
-  },
-  {
-    name: "Rapid",
-    desc: "Every 6 mins or less"
-  }
-];
-
-const getStatusDescription = (time) => {
-  if (time <= 6) {
-    return 'Rapid';
-  } else if (time <= 12) {
-    return 'Frequent';
-  } else {
-    return 'Degraded';
-  }
-};
-
-const getSum = (values) => {
-  return Math.round(values.reduce((a, b) => { return a + b; }, 0) / values.length);
-};
-
-const transformPublicDb = (db) => {
-  var transformedDb = {};
-
-  for(var line in db) {
-    var desc = getStatusDescription(db[line].NORTH);
-
-    if (!transformedDb[desc]) {
-      transformedDb[desc] = {};
-    }
-
-    transformedDb[desc][line] = db[line];
-  }
-
-  return transformedDb;
-};
-
-app.get('/', (req, res) => {
-  res.render(
-    'index',
-    {
-      lineCategories,
-      lines: transformPublicDb(publicDb)
-    }
-  );
-});
-
 const collectRT = (body) => {
   return new Promise((resolve, reject) => {
     var trainDb = {};
@@ -117,6 +62,48 @@ const collectRT = (body) => {
   });
 };
 
+const getStatusDescription = (time) => {
+  if (time <= 6) {
+    return 'Rapid';
+  } else if (time <= 12) {
+    return 'Frequent';
+  } else {
+    return 'Degraded';
+  }
+};
+
+const getSum = (values) => {
+  return Math.round(values.reduce((a, b) => { return a + b; }, 0) / values.length);
+};
+
+const lineCategories = [
+  {
+    name: "Degraded",
+    desc: "Every 13+ mins"
+  },
+  {
+    name: "Frequent",
+    desc: "Every 6-12 mins"
+  },
+  {
+    name: "Rapid",
+    desc: "Every 6 mins or less"
+  }
+];
+
+const loadAssets = () => {
+  return ProtoBuf
+  .load("nyct-subway.proto")
+  .then((root) => {
+    return new Promise((resolve, reject) => {
+      resolve([
+        root.lookupType("FeedMessage"),
+        root.lookupType("NyctTripDescriptor").nested.Direction.valuesById
+      ]);
+    });
+  });
+};
+
 const processFeed = (apiKey, feedId) => {
   request({
     url: `http://datamine.mta.info/mta_esi.php?key=${apiKey}&feed_id=${feedId}`,
@@ -146,28 +133,43 @@ const processFeed = (apiKey, feedId) => {
           trainDb[line][direction][stopId] = getSum(waitTimes);
         }
 
-        var values = Object.values(trainDb[line][direction]);
-        trainDb[line][direction] =
-          Math.round(values.reduce((a, b) => { return a + b; }, 0) / values.length);
+        trainDb[line][direction] = getSum(Object.values(trainDb[line][direction]));
       }
     }
     publicDb = Object.assign({}, publicDb, trainDb);
   });
 };
 
-ProtoBuf
-.load("nyct-subway.proto")
-.then((root) => {
-  return new Promise((resolve, reject) => {
-    resolve([
-      root.lookupType("FeedMessage"),
-      root.lookupType("NyctTripDescriptor").nested.Direction.valuesById
-    ]);
-  });
-})
+const transformPublicDb = (db) => {
+  var transformedDb = {};
+
+  for(var line in db) {
+    var desc = getStatusDescription(db[line].NORTH);
+
+    if (!transformedDb[desc]) {
+      transformedDb[desc] = {};
+    }
+
+    transformedDb[desc][line] = db[line];
+  }
+
+  return transformedDb;
+};
+
+loadAssets()
 .then((args) => {
   feedMessage = args[0];
   directionMap = args[1];
+
+  app.get('/', (req, res) => {
+    res.render(
+      'index',
+      {
+        lineCategories,
+        lines: transformPublicDb(publicDb)
+      }
+    );
+  });
 
   app.listen(process.env.PORT || 3000, () => {
     setInterval(() => {
