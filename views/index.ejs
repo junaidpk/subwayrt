@@ -6,10 +6,10 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
   <style>
-    body { text-align: center; }
-    .rapid { color: green; }
-    .frequent { color: orange; }
-    .degraded { color: red; }
+    h1, h3 { text-align: center; }
+    .Rapid { color: green; }
+    .Frequent { color: orange; }
+    .Degraded { color: red; }
   </style>
 </head>
 
@@ -18,36 +18,25 @@
     <h1>subwayrt</h1>
 
     <div class="row">
-      <% for (var lineGroup in lineDisplayGroups) { %>
-        <div class="col-md-6">
-          <% for (var lineGroup2 of lineDisplayGroups[lineGroup]) { %>
-            <div>
-              <% for(var lineCode of lineGroup2) { %>
-                <% var desc = getStatusDescription(lines[lineCode]['NORTH']); %>
-                <p>
-                  <%= lineCode %>: <span class="<%= desc %>"><%= desc %></span>
-                  <small><%= Object.keys(lines[lineCode]).map((d) => { return `${d}: ${lines[lineCode][d]}`; }) %></small>
-                </p>
-              <% } %>
-            </div>
-            <hr>
-          <% } %>
+      <% for (var lineCategory in lineCategories) { %>
+        <% var lineCategoryName = lineCategories[lineCategory].name %>
+        <div class="col-md-4">
+          <h3 class="<%= lineCategoryName %>">
+            <%= lineCategoryName %>
+            (<small><%= lineCategories[lineCategory].desc %></small>)
+          </h3>
+
+          <ul>
+            <% for(var lineCode in lines[lineCategoryName]) { %>
+              <li>
+                <%= lineCode %> Train
+                (<small>NORTH: <%= lines[lineCategoryName][lineCode].NORTH %>,
+                   SOUTH: <%= lines[lineCategoryName][lineCode].SOUTH %></small>)
+              </li>
+            <% } %>
+          </ul>
         </div>
       <% } %>
-
-<!--
-        <div>
-          <% for(var lineCode of ['L']) { %>
-            <% var desc = getStatusDescription(lines[lineCode]['NORTH']); %>
-            <p>
-              <%= lineCode %>: <span class="<%= desc %>"><%= desc %></span>
-              <small><%= Object.keys(lines[lineCode]).map((d) => { return `${d}: ${lines[lineCode][d]}`; }) %></small>
-            </p>
-          <% } %>
-        </div>
-
-        <hr>
-      -->
     </div>
   </div>
 </body>

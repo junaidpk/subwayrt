@@ -10,26 +10,57 @@ app.set('view engine', 'ejs');
 var publicDb = {};
 var feedMessage, directionMap;
 
+const lineCategories = [
+  {
+    name: "Degraded",
+    desc: "Every 13+ mins"
+  },
+  {
+    name: "Frequent",
+    desc: "Every 6-12 mins"
+  },
+  {
+    name: "Rapid",
+    desc: "Every 6 mins or less"
+  }
+];
+
+const getStatusDescription = (time) => {
+  if (time <= 6) {
+    return 'Rapid';
+  } else if (time <= 12) {
+    return 'Frequent';
+  } else {
+    return 'Degraded';
+  }
+};
+
+const getSum = (values) => {
+  return Math.round(values.reduce((a, b) => { return a + b; }, 0) / values.length);
+};
+
+const transformPublicDb = (db) => {
+  var transformedDb = {};
+
+  for(var line in db) {
+    var desc = getStatusDescription(db[line].NORTH);
+
+    if (!transformedDb[desc]) {
+      transformedDb[desc] = {};
+    }
+
+    transformedDb[desc][line] = db[line];
+  }
+
+  return transformedDb;
+};
+
 app.get('/', (req, res) => {
   res.render(
     'index',
     {
-      lineDisplayGroups: [
-        [
-          [ '1', '2', '3' ],
-          [ '4', '5', '6' ],
-          [ '7' ],
-          [ 'G' ],
-          [ 'L' ],
-          [ 'J', 'Z' ]
-        ],
-        [
-          ['A', 'C', 'E'],
-          ['B', 'D', 'F', 'M'],
-          ['N', 'Q', 'R', 'W']
-        ]
-      ],
-      lines: publicDb
+      lineCategories,
+      lines: transformPublicDb(publicDb)
     }
   );
 });
@@ -112,8 +143,7 @@ const processFeed = (apiKey, feedId) => {
             }
           }
 
-          trainDb[line][direction][stopId] =
-            Math.round(waitTimes.reduce((a, b) => { return a + b; }, 0) / waitTimes.length);
+          trainDb[line][direction][stopId] = getSum(waitTimes);
         }
 
         var values = Object.values(trainDb[line][direction]);
@@ -138,16 +168,6 @@ ProtoBuf
 .then((args) => {
   feedMessage = args[0];
   directionMap = args[1];
-
-  app.locals.getStatusDescription = (time) => {
-    if (time < 6) {
-      return 'rapid';
-    } else if (time < 12) {
-      return 'frequent';
-    } else {
-      return 'degraded';
-    }
-  };
 
   app.listen(process.env.PORT || 3000, () => {
     for(var feedId of [1, 26, 16, 21, 2, 11, 31, 36, 51]) {
