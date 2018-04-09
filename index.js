@@ -170,9 +170,11 @@ ProtoBuf
   directionMap = args[1];
 
   app.listen(process.env.PORT || 3000, () => {
-    for(var feedId of [1, 26, 16, 21, 2, 11, 31, 36, 51]) {
-      processFeed(process.env.API_KEY, feedId);
-    }
+    setInterval(() => {
+      for(var feedId of [1, 26, 16, 21, 2, 11, 31, 36, 51]) {
+        processFeed(process.env.API_KEY, feedId);
+      }
+    }, 30000);
 
     console.log('App is listening');
   });
