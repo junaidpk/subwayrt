@@ -13,6 +13,6 @@ RUN yarn install
 
 EXPOSE 9292
 
-HEALTHCHECK --interval=10s --timeout=3s CMD curl --fail http://localhost:9292/ping || exit 1
+HEALTHCHECK --interval=10s --timeout=3s CMD curl --fail http://localhost:3000/ping || exit 1
 
 CMD ["yarn", "run", "start"]
