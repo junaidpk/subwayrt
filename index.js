@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const app = express();
 const ProtoBuf = require('protobufjs');
@@ -169,6 +171,10 @@ loadAssets()
         lines: transformPublicDb(publicDb)
       }
     );
+  });
+
+  app.get('/ping', (req, res) => {
+    res.status(200).end();
   });
 
   app.listen(process.env.PORT || 3000, () => {
