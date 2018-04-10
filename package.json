@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "dotenv": "^5.0.1",
+    "ejs": "^2.5.8",
     "express": "^4.16.3",
     "moment": "^2.22.0",
     "protobufjs": "^6.8.6",
