@@ -2,9 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const app = express();
-const ProtoBuf = require('protobufjs');
-const request = require('request-promise');
-const moment = require('moment');
+const { getFeeds, loadProtobufAssets, processProtobuf } = require('nyc-gtfs-utils');
 
 app.set('views', './views');
 app.set('view engine', 'ejs');
@@ -13,54 +11,37 @@ var publicDb = {};
 var feedMessage, directionMap;
 
 const collectRT = (body) => {
-  return new Promise((resolve, reject) => {
-    var trainDb = {};
+  var trainDb = {};
 
-    try {
-      msg = feedMessage.decode(body);
-    } catch (e) {
-      console.error(e);
+  return processProtobuf(
+    feedMessage, directionMap, body,
+    () => {},
+    ({ trainId, direction, stopId, time }) => {
+      var line = trainId.substring(1, 2);
+      var time;
+
+      if (stopId.startsWith('S')) {
+        line = 'SI';
+      }
+
+      if (!trainDb[line]) {
+        trainDb[line] = {};
+      }
+
+      if (!trainDb[line][direction]) {
+        trainDb[line][direction] = {};
+      }
+
+      if (!trainDb[line][direction][stopId]) {
+        trainDb[line][direction][stopId] = [];
+      }
+
+      trainDb[line][direction][stopId].push(time);
     }
-
-    msg.entity.forEach((entity) => {
-      if (!entity.tripUpdate) return;
-      var nyctDescriptor = entity.tripUpdate.trip['.nyctTripDescriptor'];
-      var line = nyctDescriptor.trainId.substring(1, 2);
-      var direction = directionMap[nyctDescriptor.direction];
-
-      entity.tripUpdate.stopTimeUpdate.forEach((stopTimeUpdate) => {
-        var stopId = stopTimeUpdate.stopId.slice(0, -1);
-        var time;
-
-        if (stopId.startsWith('S')) {
-          line = 'SI';
-        }
-
-        if (!trainDb[line]) {
-          trainDb[line] = {};
-        }
-
-        if (!trainDb[line][direction]) {
-          trainDb[line][direction] = {};
-        }
-
-        if (!trainDb[line][direction][stopId]) {
-          trainDb[line][direction][stopId] = [];
-        }
-
-        if (stopTimeUpdate.arrival && stopTimeUpdate.arrival.time) {
-          time = stopTimeUpdate.arrival.time.low;
-        } else if (stopTimeUpdate.departure && stopTimeUpdate.departure.time) {
-          time = stopTimeUpdate.departure.time.low;
-        } else {
-          time = '';
-        }
-
-        trainDb[line][direction][stopId].push(moment.unix(time));
-      });
+  ).then(() => {
+    return new Promise((resolve, reject) => {
+      resolve(trainDb);
     });
-
-    resolve(trainDb);
   });
 };
 
@@ -80,38 +61,13 @@ const getSum = (values) => {
 
 const lineCategories = [
   {
-    name: "Degraded",
-    desc: "Every 13+ mins"
-  },
-  {
-    name: "Frequent",
-    desc: "Every 6-12 mins"
-  },
-  {
-    name: "Rapid",
-    desc: "Every 6 mins or less"
-  }
+    name: "Degraded", desc: "Every 13+ mins" },
+  { name: "Frequent", desc: "Every 6-12 mins" },
+  { name: "Rapid", desc: "Every 6 mins or less" }
 ];
 
-const loadAssets = () => {
-  return ProtoBuf
-  .load("nyct-subway.proto")
-  .then((root) => {
-    return new Promise((resolve, reject) => {
-      resolve([
-        root.lookupType("FeedMessage"),
-        root.lookupType("NyctTripDescriptor").nested.Direction.valuesById
-      ]);
-    });
-  });
-};
-
-const processFeed = (apiKey, feedId) => {
-  request({
-    url: `http://datamine.mta.info/mta_esi.php?key=${apiKey}&feed_id=${feedId}`,
-    encoding: null
-  })
-  .then(collectRT)
+const processFeed = (...args) => {
+  return collectRT(...args)
   .then((trainDb) => {
     for(var line in trainDb) {
       for(var direction in trainDb[line]) {
@@ -158,7 +114,7 @@ const transformPublicDb = (db) => {
   return transformedDb;
 };
 
-loadAssets()
+loadProtobufAssets()
 .then((args) => {
   feedMessage = args[0];
   directionMap = args[1];
@@ -178,11 +134,9 @@ loadAssets()
   });
 
   app.listen(process.env.PORT || 3000, () => {
-    setInterval(() => {
-      for(var feedId of [1, 26, 16, 21, 2, 11, 31, 36, 51]) {
-        processFeed(process.env.API_KEY, feedId);
-      }
-    }, 30000);
+    //setInterval(() => {
+      getFeeds(process.env.API_KEY, processFeed);
+    //}, 30000);
 
     console.log('App is listening');
   });
