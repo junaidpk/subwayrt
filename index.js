@@ -15,7 +15,9 @@ const collectRT = (body) => {
 
   return processProtobuf(
     feedMessage, directionMap, body,
-    () => {},
+    () => {
+      return Promise.resolve();
+    },
     ({ trainId, direction, stopId, time }) => {
       var line = trainId.substring(1, 2);
       if (stopId.startsWith('S')) {
@@ -35,6 +37,7 @@ const collectRT = (body) => {
       }
 
       trainDb[line][direction][stopId].push(time);
+      return Promise.resolve();
     }
   ).then(() => {
     return new Promise((resolve, reject) => {

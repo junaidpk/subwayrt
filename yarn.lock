@@ -462,9 +462,9 @@ negotiator@0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.1.tgz#2b327184e8992101177b28563fb5e7102acd0ca9"
 
-nyc-gtfs-utils@0.0.5:
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/nyc-gtfs-utils/-/nyc-gtfs-utils-0.0.5.tgz#d8803d21bbef6616e69f61d449ade47d7482fc82"
+nyc-gtfs-utils@0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/nyc-gtfs-utils/-/nyc-gtfs-utils-0.0.6.tgz#37312b03db55c54a1e42196cad295e64db15d243"
   dependencies:
     moment "^2.22.1"
     protobufjs "^6.8.6"
