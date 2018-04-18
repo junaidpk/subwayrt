@@ -48,12 +48,13 @@ const getAverage = (values) => {
 };
 
 const getStatusDescription = (time) => {
-  return lineCategories
-  .slice()
-  .sort((a, b) => { return a.amount - b.amount; })
-  .find((category) => {
-    return time <= category.amount;
-  }).name;
+  if (time <= 6) {
+    return 'Rapid';
+  } else if (time <= 12) {
+    return 'Frequent';
+  } else {
+    return 'Degraded';
+  }
 };
 
 const lineCategories = [
@@ -120,9 +121,9 @@ loadProtobufAssets()
   });
 
   app.listen(process.env.PORT || 3000, () => {
-    setInterval(() => {
+    //setInterval(() => {
       getFeeds(process.env.API_KEY, processFeed);
-    }, 30000);
+    //}, 30000);
 
     console.log('App is listening');
   });
