@@ -121,9 +121,9 @@ loadProtobufAssets()
   });
 
   app.listen(process.env.PORT || 3000, () => {
-    //setInterval(() => {
+    setInterval(() => {
       getFeeds(process.env.API_KEY, processFeed);
-    //}, 30000);
+    }, 30000);
 
     console.log('App is listening');
   });
