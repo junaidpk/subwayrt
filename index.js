@@ -18,8 +18,6 @@ const collectRT = (body) => {
     () => {},
     ({ trainId, direction, stopId, time }) => {
       var line = trainId.substring(1, 2);
-      var time;
-
       if (stopId.startsWith('S')) {
         line = 'SI';
       }
@@ -45,25 +43,23 @@ const collectRT = (body) => {
   });
 };
 
-const getStatusDescription = (time) => {
-  if (time <= 6) {
-    return 'Rapid';
-  } else if (time <= 12) {
-    return 'Frequent';
-  } else {
-    return 'Degraded';
-  }
-};
-
-const getSum = (values) => {
+const getAverage = (values) => {
   return Math.round(values.reduce((a, b) => { return a + b; }, 0) / values.length);
 };
 
+const getStatusDescription = (time) => {
+  return lineCategories
+  .slice()
+  .sort((a, b) => { return a.amount - b.amount; })
+  .find((category) => {
+    return time <= category.amount;
+  }).name;
+};
+
 const lineCategories = [
-  {
-    name: "Degraded", desc: "Every 13+ mins" },
-  { name: "Frequent", desc: "Every 6-12 mins" },
-  { name: "Rapid", desc: "Every 6 mins or less" }
+  { name: "Degraded", amount: Infinity, desc: "Every 13+ mins" },
+  { name: "Frequent", amount: 12, desc: "Every 6-12 mins" },
+  { name: "Rapid", amount: 6, desc: "Every 6 mins or less" }
 ];
 
 const processFeed = (...args) => {
@@ -83,15 +79,16 @@ const processFeed = (...args) => {
             ];
           } else {
             for(var i = 1; i < sortedTimes.length; i++) {
-              var diff = sortedTimes[i].diff(sortedTimes[i-1], 'minutes')
-              waitTimes.push(Math.abs(diff));
+              waitTimes.push(Math.abs(
+                sortedTimes[i].diff(sortedTimes[i-1], 'minutes')
+              ));
             }
           }
 
-          trainDb[line][direction][stopId] = getSum(waitTimes);
+          trainDb[line][direction][stopId] = getAverage(waitTimes);
         }
 
-        trainDb[line][direction] = getSum(Object.values(trainDb[line][direction]));
+        trainDb[line][direction] = getAverage(Object.values(trainDb[line][direction]));
       }
     }
     publicDb = Object.assign({}, publicDb, trainDb);
@@ -99,19 +96,11 @@ const processFeed = (...args) => {
 };
 
 const transformPublicDb = (db) => {
-  var transformedDb = {};
-
-  for(var line in db) {
+  return Object.keys(db).reduce((prev, line) => {
     var desc = getStatusDescription(db[line].NORTH);
-
-    if (!transformedDb[desc]) {
-      transformedDb[desc] = {};
-    }
-
-    transformedDb[desc][line] = db[line];
-  }
-
-  return transformedDb;
+    prev[desc][line] = db[line];
+    return prev;
+  }, lineCategories.reduce((prev, cat) => { prev[cat.name] = {}; return prev; }, {}));
 };
 
 loadProtobufAssets()
@@ -122,10 +111,7 @@ loadProtobufAssets()
   app.get('/', (req, res) => {
     res.render(
       'index',
-      {
-        lineCategories,
-        lines: transformPublicDb(publicDb)
-      }
+      { lineCategories, lines: transformPublicDb(publicDb) }
     );
   });
 
@@ -134,9 +120,9 @@ loadProtobufAssets()
   });
 
   app.listen(process.env.PORT || 3000, () => {
-    //setInterval(() => {
+    setInterval(() => {
       getFeeds(process.env.API_KEY, processFeed);
-    //}, 30000);
+    }, 30000);
 
     console.log('App is listening');
   });
