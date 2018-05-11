@@ -1,3 +1,6 @@
 name: subwayrt
 port: 3000
 environment_variables: true
+hosts:
+  - subwayrt.mac2cluster.jonathanmoss.me
+  - subwayrt.nybigboard.com
